@@ -14,7 +14,7 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v4
 
-      - name: Apply title and favicon
+      - name: Apply title, favicon, and verified Austin ratings
         run: |
           python - <<'PY'
           from pathlib import Path
@@ -40,18 +40,27 @@ jobs:
               html = html.replace(marker, favicon + marker, 1)
               changed = True
 
+          old_ratings = '"ratings":{"controlez":0.78,"ariucle":0.78,"ROUX":0.78,"efire":0.78,"cool4st":0.78},"ratingLabels":{"controlez":"audited baseline estimate","ariucle":"audited baseline estimate","ROUX":"audited baseline estimate","efire":"audited baseline estimate","cool4st":"audited baseline estimate"}'
+          new_ratings = '"ratings":{"controlez":1.14,"ariucle":1.00,"ROUX":1.06,"efire":0.96,"cool4st":0.91},"ratingLabels":{"controlez":"HLTV event rating (verified)","ariucle":"HLTV event rating (verified)","ROUX":"HLTV event rating (verified)","efire":"HLTV event rating (verified)","cool4st":"HLTV event rating (verified)"}'
+
+          if old_ratings in html:
+              html = html.replace(old_ratings, new_ratings, 1)
+              changed = True
+          elif new_ratings not in html:
+              raise SystemExit("Expected Chinggis Warriors Austin ratings block was not found; refusing to modify index.html.")
+
           if changed:
               path.write_text(html, encoding="utf-8")
           PY
 
-      - name: Commit branding change
+      - name: Commit changes
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add index.html
           if git diff --cached --quiet; then
-            echo "Branding already applied."
+            echo "All requested site fixes already applied."
           else
-            git commit -m "Add site logo and browser title"
+            git commit -m "Fix Chinggis Warriors Austin Major HLTV ratings"
             git push
           fi
