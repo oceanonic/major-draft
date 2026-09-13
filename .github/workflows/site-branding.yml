@@ -1,0 +1,57 @@
+name: Apply site branding
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  brand:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Apply title and favicon
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path("index.html")
+          html = path.read_text(encoding="utf-8")
+          changed = False
+
+          old_title = "<title>Major Draft V27 — Classic</title>"
+          new_title = "<title>Major Draft</title>"
+
+          if old_title in html:
+              html = html.replace(old_title, new_title, 1)
+              changed = True
+          elif new_title not in html:
+              raise SystemExit("Expected Major Draft title was not found; refusing to modify index.html.")
+
+          favicon = '<link rel="icon" type="image/svg+xml" href="favicon.svg">'
+          if 'href="favicon.svg"' not in html:
+              marker = '<meta name="rating-audit"'
+              if marker not in html:
+                  raise SystemExit("Expected rating-audit marker was not found; refusing to modify index.html.")
+              html = html.replace(marker, favicon + marker, 1)
+              changed = True
+
+          if changed:
+              path.write_text(html, encoding="utf-8")
+          PY
+
+      - name: Commit branding change
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html
+          if git diff --cached --quiet; then
+            echo "Branding already applied."
+          else
+            git commit -m "Add site logo and browser title"
+            git push
+          fi
